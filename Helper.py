@@ -90,7 +90,6 @@ def user_input(user_question):
         , return_only_outputs=True)
 
     return response , docs
-
     
 def load_in_db():#This function loads all the text and do the pre-processing Stuff !
     all_text = ""
