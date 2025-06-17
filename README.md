@@ -64,5 +64,5 @@ This project involves developing an intelligent chatbot that uses **Langchain**,
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/sushant-chivale/chatpdf-rag.git
+   git clone https://github.com/sushant-chivale/Chatpdf_RAG.git
    cd chatpdf-rag
