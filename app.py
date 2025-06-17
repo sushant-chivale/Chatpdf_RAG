@@ -1,47 +1,70 @@
 import streamlit as st
-from Helper import user_input
-from evaluate import load
-# Load the ROUGE metric
-import evaluate
+from Helper import user_input, extract_text_from_pdf, get_text_chunks, get_vector_store
+# from evaluate import load
+# # Load the ROUGE metric
+# import evaluate
+
+def preprocess_pdf(uploaded_files):
+    progress = st.progress(0)
+    all_text_chunks = []
+
+    with st.spinner("Extracting and processing documents..."):
+        for i, uploaded_file in enumerate(uploaded_files):
+            # Extract text from PDF
+            pdf_text = extract_text_from_pdf(uploaded_file)
+            progress.progress(int((i + 1) / len(uploaded_files) * 33))
+
+            # Split the text into chunks
+            text_chunks = get_text_chunks(pdf_text)
+            all_text_chunks.extend(text_chunks)
+            progress.progress(int((i + 1) / len(uploaded_files) * 66))
+
+        # Create vector store
+        vector_store = get_vector_store(all_text_chunks)
+        progress.progress(100)
+
+    st.success(f"Processed {len(uploaded_files)} documents successfully!")
+    return vector_store
 
 def create_ui():
-    st.title("PDF made easy!")
-    # st.sidebar.image("image.png", use_column_width=True)
-    st.sidebar.write("### Welcome to PDF made easy!")
-    st.sidebar.write("Ask a question below and get instant insights.")
+    st.set_page_config(page_title="PDF Made Easy", page_icon=":book:", layout="centered")
 
-    # Add some instructions
+    st.title("📚 PDF Made Easy!")
+    st.sidebar.write("### Welcome to PDF Made Easy!")
+    st.sidebar.write("Upload multiple PDFs, preprocess them, and chat with the documents effortlessly.")
+
     st.markdown("### Instructions")
     st.markdown(
         """
-        1. Enter your question in the text box below.
-        2. Click on 'Submit' to get the response.
-        3. View the answer generated based on the context from the PDFs and URLs provided.
+        1. Upload multiple PDF files.
+        2. Wait for the documents to be processed.
+        3. Ask questions to get detailed answers from the documents.
         """
     )
 
-    # Get user input
-    question = st.text_input("Ask a question:")
+    uploaded_files = st.file_uploader("Upload PDF files", type="pdf", accept_multiple_files=True)
 
-    # Call user_input function when user clicks submit
-    if st.button("Submit"):
-        with st.spinner("Generating response..."):
-            response , context_docs = user_input(question)
-            rouge = evaluate.load('rouge')
-            output_text = response.get('output_text', 'No response')  # Extract the 'output_text' from the response
-            context = ' '.join([doc.page_content for doc in context_docs])
-            # Ensure predictions and references are lists of strings
-            results = rouge.compute(predictions=[output_text], references=[context])
-            st.success("Response:")
-            st.write(output_text)
-            st.success("Rougue score:")
-            st.write(results)
+    if uploaded_files:
+        # Display a message informing the user that the files are being processed
+        if "vector_store" not in st.session_state:
+            st.session_state.vector_store = preprocess_pdf(uploaded_files)
 
-    # Add some footer
-    st.markdown("---")
-    st.markdown("**Powered by**: Shaurya Mishra")
+        st.markdown("### Chat with Your Documents")
+        question = st.text_input("Ask a question:")
 
-# Main function to run the app
+        if question:
+            with st.spinner("Generating response..."):
+                response, context_docs = user_input(question)
+                output_text = response.get('output_text', 'No response')
+                st.success("Response:")
+                st.write(output_text)
+        else:
+            st.warning("Please enter a question to interact with the documents.")
+
+    else:
+        st.info("Please upload PDF files to get started.")
+
+
 def main():
     create_ui()
 
